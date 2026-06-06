@@ -1,0 +1,2398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidFlow — Freelancer Auto-Bidder</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #18181f;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #6c63ff;
+  --accent2: #ff6b6b;
+  --accent3: #00d9a3;
+  --text: #f0f0f8;
+  --muted: #888899;
+  --muted2: #555566;
+  --font-head: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--font-body);cursor:pointer}
+input,select,textarea{font-family:var(--font-body)}
+
+/* LAYOUT */
+.app { display:flex; height:100vh; overflow:hidden; }
+
+/* SIDEBAR */
+.sidebar {
+  width:220px;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  padding:0;
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+}
+.sidebar::before {
+  content:'';
+  position:absolute;
+  top:-80px; left:-80px;
+  width:200px; height:200px;
+  background: radial-gradient(circle, rgba(108,99,255,0.15) 0%, transparent 70%);
+  pointer-events:none;
+}
+.logo {
+  padding:24px 20px 20px;
+  font-family:var(--font-head);
+  font-size:18px;
+  font-weight:800;
+  letter-spacing:-0.5px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:8px;
+}
+.logo-icon {
+  width:32px; height:32px;
+  background: linear-gradient(135deg, var(--accent), #9b59b6);
+  border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px;
+}
+.logo-text span { color:var(--accent); }
+.nav-section {
+  padding:8px 12px 4px;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--muted2);
+}
+.nav-item {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 20px;
+  font-size:13.5px;
+  color:var(--muted);
+  cursor:pointer;
+  border-radius:0;
+  transition:all 0.15s;
+  position:relative;
+  margin:1px 0;
+}
+.nav-item:hover { color:var(--text); background:rgba(255,255,255,0.04); }
+.nav-item.active {
+  color:var(--text);
+  background:rgba(108,99,255,0.12);
+}
+.nav-item.active::before {
+  content:'';
+  position:absolute;
+  left:0; top:20%; bottom:20%;
+  width:3px;
+  background:var(--accent);
+  border-radius:0 2px 2px 0;
+}
+.nav-icon { font-size:16px; width:18px; text-align:center; }
+.nav-badge {
+  margin-left:auto;
+  background:var(--accent);
+  color:#fff;
+  font-size:10px;
+  font-weight:600;
+  padding:2px 7px;
+  border-radius:20px;
+}
+.nav-badge.green { background:var(--accent3); color:#000; }
+.sidebar-bottom {
+  margin-top:auto;
+  padding:16px;
+  border-top:1px solid var(--border);
+}
+.user-pill {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  background:var(--bg3);
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+}
+.avatar {
+  width:32px; height:32px;
+  border-radius:50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-head);
+  font-size:12px;
+  font-weight:700;
+  flex-shrink:0;
+}
+.user-info { flex:1; min-width:0; }
+.user-name { font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-status { font-size:10px; color:var(--accent3); }
+
+/* MAIN */
+.main { flex:1; overflow-y:auto; background:var(--bg); }
+.page { display:none; padding:32px; max-width:1100px; }
+.page.active { display:block; }
+
+/* TOPBAR */
+.topbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:28px;
+}
+.page-title {
+  font-family:var(--font-head);
+  font-size:24px;
+  font-weight:700;
+  letter-spacing:-0.5px;
+}
+.page-sub { font-size:13px; color:var(--muted); margin-top:2px; }
+.topbar-actions { display:flex; gap:10px; align-items:center; }
+
+/* BUTTONS */
+.btn {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:9px 16px;
+  border-radius:var(--radius-sm);
+  font-size:13px;
+  font-weight:500;
+  border:1px solid var(--border2);
+  background:transparent;
+  color:var(--text);
+  transition:all 0.15s;
+}
+.btn:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.2); }
+.btn-primary {
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.btn-primary:hover { background:#5a52e0; border-color:#5a52e0; }
+.btn-success {
+  background:rgba(0,217,163,0.12);
+  border-color:rgba(0,217,163,0.3);
+  color:var(--accent3);
+}
+.btn-danger {
+  background:rgba(255,107,107,0.1);
+  border-color:rgba(255,107,107,0.25);
+  color:var(--accent2);
+}
+
+/* STATS GRID */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-bottom:28px;
+}
+.stat-card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  position:relative;
+  overflow:hidden;
+  transition:border-color 0.2s;
+}
+.stat-card:hover { border-color:var(--border2); }
+.stat-card::after {
+  content:'';
+  position:absolute;
+  bottom:-20px; right:-20px;
+  width:60px; height:60px;
+  border-radius:50%;
+  opacity:0.08;
+}
+.stat-card.purple::after { background:var(--accent); }
+.stat-card.green::after { background:var(--accent3); }
+.stat-card.red::after { background:var(--accent2); }
+.stat-card.blue::after { background:#3b82f6; }
+.stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px; }
+.stat-value { font-family:var(--font-head); font-size:28px; font-weight:700; line-height:1; }
+.stat-value.purple { color:var(--accent); }
+.stat-value.green { color:var(--accent3); }
+.stat-value.red { color:var(--accent2); }
+.stat-value.blue { color:#3b82f6; }
+.stat-change { font-size:11px; color:var(--muted); margin-top:6px; }
+.stat-change .up { color:var(--accent3); }
+.stat-change .down { color:var(--accent2); }
+
+/* CARDS */
+.card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-bottom:20px;
+}
+.card-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+}
+.card-title { font-family:var(--font-head); font-size:15px; font-weight:600; }
+.card-body { padding:20px; }
+
+/* TOGGLE SWITCH */
+.toggle-wrap { display:flex; align-items:center; gap:12px; }
+.toggle {
+  position:relative;
+  width:40px; height:22px;
+  flex-shrink:0;
+}
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-track {
+  position:absolute; inset:0;
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.toggle-track::before {
+  content:'';
+  position:absolute;
+  height:14px; width:14px;
+  left:3px; top:3px;
+  background:var(--muted2);
+  border-radius:50%;
+  transition:all 0.2s;
+}
+.toggle input:checked + .toggle-track { background:var(--accent); border-color:var(--accent); }
+.toggle input:checked + .toggle-track::before { transform:translateX(18px); background:#fff; }
+
+/* RULE ROWS */
+.rule-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 0;
+  border-bottom:1px solid var(--border);
+  gap:12px;
+}
+.rule-row:last-child { border-bottom:none; padding-bottom:0; }
+.rule-info { flex:1; min-width:0; }
+.rule-name { font-size:13.5px; font-weight:500; margin-bottom:3px; }
+.rule-meta { font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+.rule-tag {
+  background:rgba(108,99,255,0.12);
+  color:var(--accent);
+  border:1px solid rgba(108,99,255,0.2);
+  padding:1px 8px;
+  border-radius:4px;
+  font-size:11px;
+}
+.rule-actions { display:flex; gap:6px; }
+
+/* BID ITEM */
+.bid-item {
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  padding:14px 0;
+  border-bottom:1px solid var(--border);
+}
+.bid-item:last-child { border-bottom:none; padding-bottom:0; }
+.bid-dot {
+  width:8px; height:8px;
+  border-radius:50%;
+  margin-top:6px;
+  flex-shrink:0;
+}
+.bid-dot.sent { background:var(--accent3); box-shadow:0 0 6px var(--accent3); }
+.bid-dot.pending { background:#f59e0b; box-shadow:0 0 6px #f59e0b; }
+.bid-dot.replied { background:var(--accent); box-shadow:0 0 6px var(--accent); }
+.bid-content { flex:1; min-width:0; }
+.bid-title { font-size:13.5px; font-weight:500; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bid-bottom { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.bid-time { font-size:11px; color:var(--muted2); }
+.bid-budget { font-size:12px; color:var(--accent3); font-weight:500; }
+.badge {
+  font-size:10px;
+  font-weight:600;
+  padding:2px 8px;
+  border-radius:20px;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.badge-green { background:rgba(0,217,163,0.1); color:var(--accent3); border:1px solid rgba(0,217,163,0.2); }
+.badge-amber { background:rgba(245,158,11,0.1); color:#f59e0b; border:1px solid rgba(245,158,11,0.2); }
+.badge-purple { background:rgba(108,99,255,0.1); color:var(--accent); border:1px solid rgba(108,99,255,0.2); }
+.badge-red { background:rgba(255,107,107,0.1); color:var(--accent2); border:1px solid rgba(255,107,107,0.2); }
+
+/* STATUS INDICATOR */
+.status-bar {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 16px;
+  background:rgba(0,217,163,0.06);
+  border:1px solid rgba(0,217,163,0.15);
+  border-radius:var(--radius-sm);
+  margin-bottom:20px;
+}
+.status-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:var(--accent3);
+  box-shadow:0 0 8px var(--accent3);
+  animation:pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100%{opacity:1}
+  50%{opacity:0.5}
+}
+.status-text { font-size:13px; color:var(--accent3); font-weight:500; }
+.status-sub { font-size:12px; color:var(--muted); margin-left:auto; }
+
+/* SETTINGS */
+.setting-group { margin-bottom:24px; }
+.setting-label {
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:0.8px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.setting-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 0;
+  border-bottom:1px solid var(--border);
+  gap:16px;
+}
+.setting-row:last-child { border-bottom:none; }
+.setting-name { font-size:13.5px; font-weight:500; }
+.setting-desc { font-size:12px; color:var(--muted); margin-top:2px; }
+.setting-control { flex-shrink:0; }
+input[type=text], input[type=password], input[type=number], select, textarea {
+  background:var(--bg3);
+  border:1px solid var(--border2);
+  border-radius:var(--radius-sm);
+  color:var(--text);
+  padding:8px 12px;
+  font-size:13px;
+  outline:none;
+  transition:border-color 0.15s;
+  width:220px;
+}
+input[type=text]:focus, input[type=password]:focus, input[type=number]:focus, select:focus, textarea:focus {
+  border-color:var(--accent);
+}
+select option { background:var(--bg3); }
+input[type=range] {
+  -webkit-appearance:none;
+  height:4px;
+  background:var(--bg3);
+  border-radius:4px;
+  width:140px;
+  outline:none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:16px; height:16px;
+  border-radius:50%;
+  background:var(--accent);
+  cursor:pointer;
+}
+
+/* JOB FEED */
+.job-filters {
+  display:flex; gap:8px; flex-wrap:wrap;
+  margin-bottom:20px;
+}
+.filter-btn {
+  padding:6px 14px;
+  border-radius:20px;
+  border:1px solid var(--border2);
+  background:transparent;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.filter-btn:hover, .filter-btn.active {
+  background:rgba(108,99,255,0.12);
+  border-color:rgba(108,99,255,0.3);
+  color:var(--accent);
+}
+.job-card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.job-card:hover { border-color:rgba(108,99,255,0.3); background:rgba(108,99,255,0.04); }
+.job-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; }
+.job-title { font-size:14px; font-weight:500; line-height:1.4; }
+.job-budget { font-size:13px; color:var(--accent3); font-weight:600; flex-shrink:0; }
+.job-desc { font-size:12.5px; color:var(--muted); margin-bottom:10px; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.job-footer { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.job-tag { background:var(--bg3); border:1px solid var(--border); color:var(--muted); padding:2px 10px; border-radius:4px; font-size:11px; }
+.job-meta { font-size:11px; color:var(--muted2); margin-left:auto; }
+
+/* EARNINGS */
+.chart-bar-wrap { display:flex; align-items:flex-end; gap:6px; height:120px; margin:16px 0; }
+.chart-bar {
+  flex:1;
+  background:linear-gradient(to top, var(--accent), rgba(108,99,255,0.3));
+  border-radius:4px 4px 0 0;
+  position:relative;
+  transition:opacity 0.2s;
+  min-width:0;
+}
+.chart-bar:hover { opacity:0.8; }
+.chart-labels { display:flex; gap:6px; }
+.chart-label { flex:1; text-align:center; font-size:10px; color:var(--muted2); min-width:0; }
+
+/* PROPOSAL MODAL */
+.modal-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.7);
+  display:flex; align-items:center; justify-content:center;
+  z-index:100;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.2s;
+}
+.modal-overlay.show { opacity:1; pointer-events:all; }
+.modal {
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:28px;
+  width:560px;
+  max-width:95vw;
+  max-height:85vh;
+  overflow-y:auto;
+  transform:translateY(10px);
+  transition:transform 0.2s;
+}
+.modal-overlay.show .modal { transform:translateY(0); }
+.modal-title { font-family:var(--font-head); font-size:18px; font-weight:700; margin-bottom:4px; }
+.modal-sub { font-size:13px; color:var(--muted); margin-bottom:20px; }
+.modal-label { font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:500; }
+.modal-field { margin-bottom:16px; }
+.modal-field input, .modal-field textarea, .modal-field select { width:100%; }
+.modal-field textarea { resize:vertical; min-height:100px; line-height:1.6; }
+.modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+.generating {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px;
+  background:rgba(108,99,255,0.08);
+  border:1px solid rgba(108,99,255,0.2);
+  border-radius:var(--radius-sm);
+  font-size:13px; color:var(--accent);
+  margin-bottom:16px;
+}
+.spinner { width:14px; height:14px; border:2px solid rgba(108,99,255,0.3); border-top-color:var(--accent); border-radius:50%; animation:spin 0.7s linear infinite; flex-shrink:0; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ADD RULE MODAL */
+.tag-input-wrap { display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:8px; background:var(--bg3); border:1px solid var(--border2); border-radius:var(--radius-sm); }
+.tag-chip { background:rgba(108,99,255,0.15); border:1px solid rgba(108,99,255,0.3); color:var(--accent); padding:3px 10px; border-radius:4px; font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer; }
+.tag-chip:hover { background:rgba(255,107,107,0.1); border-color:var(--accent2); color:var(--accent2); }
+.tag-input { background:transparent; border:none; outline:none; color:var(--text); font-size:13px; min-width:80px; flex:1; font-family:var(--font-body); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+
+/* EMPTY STATE */
+.empty-state { text-align:center; padding:48px 20px; color:var(--muted); }
+.empty-icon { font-size:40px; margin-bottom:12px; opacity:0.4; }
+.empty-title { font-family:var(--font-head); font-size:16px; font-weight:600; margin-bottom:6px; color:var(--text); opacity:0.5; }
+
+/* GRID */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+@media(max-width:800px){ .stats-grid{grid-template-columns:1fr 1fr;} .two-col{grid-template-columns:1fr;} }
+
+/* ONBOARD BANNER */
+.onboard {
+  background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(0,217,163,0.08));
+  border:1px solid rgba(108,99,255,0.2);
+  border-radius:var(--radius);
+  padding:20px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:24px;
+}
+.onboard-text h3 { font-family:var(--font-head); font-size:16px; font-weight:700; margin-bottom:4px; }
+.onboard-text p { font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="
+  position:fixed;inset:0;z-index:200;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+">
+  <!-- bg glow -->
+  <div style="position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(108,99,255,0.12) 0%,transparent 70%);pointer-events:none"></div>
+
+  <div style="width:100%;max-width:420px;padding:0 24px;position:relative;z-index:1">
+
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:40px">
+      <div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:8px">
+        <div style="width:44px;height:44px;background:linear-gradient(135deg,var(--accent),#9b59b6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px">⚡</div>
+        <div style="font-family:var(--font-head);font-size:28px;font-weight:800;letter-spacing:-1px">Bid<span style="color:var(--accent)">Flow</span></div>
+      </div>
+      <div style="font-size:14px;color:var(--muted)">Your Freelancer.com bidding platform</div>
+    </div>
+
+    <!-- Card -->
+    <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:32px;margin-bottom:20px">
+
+      <!-- Connect with Freelancer -->
+      <div id="login-connect-section">
+        <div style="font-family:var(--font-head);font-size:18px;font-weight:700;margin-bottom:6px">Connect your account</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:24px">Sign in with Freelancer.com to start bidding</div>
+
+        <button onclick="connectWithFreelancer()" style="
+          width:100%;padding:14px;border-radius:10px;border:none;
+          background:linear-gradient(135deg,#1aaf5d,#1a8a4a);
+          color:#fff;font-size:15px;font-weight:600;font-family:var(--font-head);
+          cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+          transition:opacity 0.15s;letter-spacing:-0.3px;
+          box-shadow:0 4px 20px rgba(26,175,93,0.25);
+        " onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="white" fill-opacity="0.15"/><text x="16" y="21" text-anchor="middle" fill="white" font-size="14" font-weight="bold">f</text></svg>
+          Connect with Freelancer.com
+        </button>
+
+        <div style="display:flex;align-items:center;gap:12px;margin:20px 0">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <div style="font-size:12px;color:var(--muted2)">or use API token</div>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+
+        <!-- Manual token entry -->
+        <div style="margin-bottom:14px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500">Personal Access Token</div>
+          <input type="password" id="token-input" placeholder="Paste your Freelancer API token…"
+            style="width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-size:13px;outline:none"
+            oninput="document.getElementById('token-login-btn').disabled=!this.value.trim()"
+            onkeydown="if(event.key==='Enter')loginWithToken()">
+        </div>
+        <button id="token-login-btn" onclick="loginWithToken()" disabled style="
+          width:100%;padding:11px;border-radius:8px;border:1px solid var(--border2);
+          background:transparent;color:var(--muted);font-size:13px;font-weight:500;font-family:var(--font-body);
+          cursor:pointer;transition:all 0.15s;
+        "
+        onmouseover="if(!this.disabled){this.style.background='rgba(108,99,255,0.1)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)'}"
+        onmouseout="if(!this.disabled){this.style.background='transparent';this.style.borderColor='var(--border2)';this.style.color='var(--muted)'}">
+          Sign in with Token
+        </button>
+
+        <div style="margin-top:12px;text-align:center">
+          <a href="https://www.freelancer.com/users/settings/developer" target="_blank"
+             style="font-size:12px;color:var(--accent);text-decoration:underline;text-underline-offset:3px">
+            How do I get a token? ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="login-loading" style="display:none;text-align:center;padding:20px 0">
+        <div style="width:36px;height:36px;border:3px solid rgba(108,99,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 16px"></div>
+        <div style="font-size:14px;color:var(--muted)" id="login-loading-text">Connecting to Freelancer.com…</div>
+      </div>
+
+      <!-- Error state -->
+      <div id="login-error" style="display:none;padding:12px 14px;border-radius:8px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);color:var(--accent2);font-size:13px;margin-top:14px"></div>
+
+    </div>
+
+    <!-- Demo mode -->
+    <div style="text-align:center">
+      <button onclick="enterDemoMode()" style="background:none;border:none;color:var(--muted2);font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-family:var(--font-body)">
+        Continue in demo mode (no account needed)
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">Bid<span>Flow</span></div>
+    </div>
+
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" onclick="nav('dashboard')">
+      <span class="nav-icon">⊞</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="nav('jobs')">
+      <span class="nav-icon">📋</span> Job Feed
+      <span class="nav-badge" id="badge-jobs">12</span>
+    </div>
+
+    <div class="nav-section">Manage</div>
+    <div class="nav-item" onclick="nav('inbox')">
+      <span class="nav-icon">💬</span> Inbox
+      <span class="nav-badge" id="badge-inbox" style="background:var(--accent2)">3</span>
+    </div>
+    <div class="nav-item" onclick="nav('proposals')">
+      <span class="nav-icon">✉</span> My Bids
+    </div>
+    <div class="nav-item" onclick="nav('scripts')">
+      <span class="nav-icon">📝</span> Bid Scripts
+    </div>
+    <div class="nav-item" onclick="nav('earnings')">
+      <span class="nav-icon">💰</span> Earnings
+    </div>
+
+    <div class="nav-section">Tools</div>
+    <div class="nav-item" onclick="nav('devs')">
+      <span class="nav-icon">👥</span> Find Devs
+    </div>
+
+    <div class="nav-section">Account</div>
+    <div class="nav-item" onclick="nav('settings')">
+      <span class="nav-icon">⚙</span> Settings
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="user-pill" style="cursor:pointer;position:relative" onclick="toggleUserMenu()">
+        <div class="avatar" id="sidebar-avatar">?</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebar-name">Not connected</div>
+          <div class="user-status" id="sidebar-status" style="color:var(--muted2)">● Demo mode</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted2)">⋯</div>
+      </div>
+      <!-- user menu -->
+      <div id="user-menu" style="display:none;position:absolute;bottom:72px;left:12px;right:12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);overflow:hidden;z-index:50">
+        <a id="profile-link" href="https://www.freelancer.com" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;color:var(--muted);transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
+          👤 View Freelancer Profile ↗
+        </a>
+        <div onclick="logout()" style="display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:13px;color:var(--accent2);cursor:pointer;transition:background 0.15s;border-top:1px solid var(--border)" onmouseover="this.style.background='rgba(255,107,107,0.06)'" onmouseout="this.style.background='transparent'">
+          🚪 Sign out
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Welcome back — browse jobs and bid manually</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="nav('autobidder')">⚡ Manage Bidder</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card purple">
+          <div class="stat-label">Bids Sent Today</div>
+          <div class="stat-value purple" id="dash-bids-today">0</div>
+          <div class="stat-change"><span class="up">↑ auto-running</span></div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Response Rate</div>
+          <div class="stat-value green">24%</div>
+          <div class="stat-change"><span class="up">↑ 3%</span> this week</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Active Projects</div>
+          <div class="stat-value blue">3</div>
+          <div class="stat-change">2 in review</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">Monthly Earnings</div>
+          <div class="stat-value red">$1,840</div>
+          <div class="stat-change"><span class="up">↑ 18%</span> vs last month</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Recent Auto-Bids</span>
+            <span class="badge badge-green">Live</span>
+          </div>
+          <div class="card-body" id="recent-bids-list">
+            <div class="bid-item">
+              <div class="bid-dot sent"></div>
+              <div class="bid-content">
+                <div class="bid-title">Build React dashboard for SaaS analytics</div>
+                <div class="bid-bottom">
+                  <span class="bid-budget">$250 proposed</span>
+                  <span class="bid-time">2 min ago</span>
+                  <span class="badge badge-green">Sent</span>
+                </div>
+              </div>
+            </div>
+            <div class="bid-item">
+              <div class="bid-dot replied"></div>
+              <div class="bid-content">
+                <div class="bid-title">API integration for e-commerce platform</div>
+                <div class="bid-bottom">
+                  <span class="bid-budget">$180 proposed</span>
+                  <span class="bid-time">1 hr ago</span>
+                  <span class="badge badge-purple">Replied!</span>
+                </div>
+              </div>
+            </div>
+            <div class="bid-item">
+              <div class="bid-dot pending"></div>
+              <div class="bid-content">
+                <div class="bid-title">Fix Node.js server performance issues</div>
+                <div class="bid-bottom">
+                  <span class="bid-budget">$120 proposed</span>
+                  <span class="bid-time">3 hr ago</span>
+                  <span class="badge badge-amber">Pending</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">Top Jobs Right Now</span>
+            <button class="btn" onclick="nav('jobs')" style="font-size:12px;padding:5px 12px;">View all</button>
+          </div>
+          <div class="card-body">
+            <div class="job-card" onclick="openProposalModal('WordPress custom plugin — WooCommerce', '$80–200', ['WordPress','PHP'])">
+              <div class="job-top">
+                <div class="job-title">WordPress custom plugin — WooCommerce</div>
+                <div class="job-budget">$80–200</div>
+              </div>
+              <div class="job-footer">
+                <span class="job-tag">WordPress</span>
+                <span class="job-tag">PHP</span>
+                <span class="job-meta">Posted 5 min ago</span>
+              </div>
+            </div>
+            <div class="job-card" onclick="openProposalModal('Python data scraper for product listings', '$100–300', ['Python','Scraping'])">
+              <div class="job-top">
+                <div class="job-title">Python data scraper for product listings</div>
+                <div class="job-budget">$100–300</div>
+              </div>
+              <div class="job-footer">
+                <span class="job-tag">Python</span>
+                <span class="job-tag">Scraping</span>
+                <span class="job-meta">Posted 12 min ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTO BIDDER -->
+    <div class="page" id="page-autobidder">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Auto Bidder</div>
+          <div class="page-sub">Rules that automatically send proposals on Freelancer.com</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" id="pause-btn" onclick="toggleBidder()">⏸ Pause All</button>
+          <button class="btn btn-primary" onclick="openRuleModal()">+ New Rule</button>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-dot" id="bidder-dot"></div>
+        <span class="status-text" id="bidder-status-text">Auto Bidder Running</span>
+        <span style="font-size:12px;color:var(--muted)" id="bidder-rule-count">2 active rules</span>
+        <span class="status-sub">Max 20 bids/day · 1–3 min delay</span>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Bidding Rules</span>
+          <span style="font-size:12px;color:var(--muted)" id="rule-count-text">2 rules</span>
+        </div>
+        <div class="card-body" id="rules-list">
+          <!-- rules rendered by JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Bid Queue</span>
+          <span class="badge badge-amber" id="queue-count">3 pending</span>
+        </div>
+        <div class="card-body">
+          <div class="bid-item">
+            <div class="bid-dot pending"></div>
+            <div class="bid-content">
+              <div class="bid-title">React Native mobile app for delivery service</div>
+              <div class="bid-bottom"><span class="bid-budget">Bidding $320</span><span class="bid-time">Queued · fires in 2 min</span></div>
+            </div>
+            <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="skipBid(this)">Skip</button>
+          </div>
+          <div class="bid-item">
+            <div class="bid-dot pending"></div>
+            <div class="bid-content">
+              <div class="bid-title">REST API development for mobile app backend</div>
+              <div class="bid-bottom"><span class="bid-budget">Bidding $200</span><span class="bid-time">Queued · fires in 7 min</span></div>
+            </div>
+            <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="skipBid(this)">Skip</button>
+          </div>
+          <div class="bid-item">
+            <div class="bid-dot pending"></div>
+            <div class="bid-content">
+              <div class="bid-title">Full-stack developer for SaaS MVP build</div>
+              <div class="bid-bottom"><span class="bid-budget">Bidding $500</span><span class="bid-time">Queued · fires in 15 min</span></div>
+            </div>
+            <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="skipBid(this)">Skip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOB FEED -->
+    <div class="page" id="page-jobs">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Job Feed</div>
+          <div class="page-sub">Live jobs from Freelancer.com matching your skills</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="refreshJobs()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="job-filters">
+        <button class="filter-btn active">All</button>
+        <button class="filter-btn" onclick="filterJobs('web')">Web Dev</button>
+        <button class="filter-btn" onclick="filterJobs('design')">Design</button>
+        <button class="filter-btn" onclick="filterJobs('api')">API / Backend</button>
+        <button class="filter-btn" onclick="filterJobs('mobile')">Mobile</button>
+        <button class="filter-btn" onclick="filterJobs('python')">Python</button>
+      </div>
+      <div id="jobs-list">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- PROPOSALS -->
+    <div class="page" id="page-proposals">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Proposals</div>
+          <div class="page-sub">All sent bids and their status</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body" id="proposals-list">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- BID SCRIPTS -->
+    <div class="page" id="page-scripts">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Bid Scripts</div>
+          <div class="page-sub">Templates used when generating auto-proposals</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-primary" onclick="addScript()">+ New Script</button>
+        </div>
+      </div>
+      <div class="two-col" id="scripts-list">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- EARNINGS -->
+    <div class="page" id="page-earnings">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Earnings</div>
+          <div class="page-sub">Revenue from completed projects</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card green">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value green">$1,840</div>
+          <div class="stat-change"><span class="up">↑ 18%</span> vs last month</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">Pending Payout</div>
+          <div class="stat-value purple">$620</div>
+          <div class="stat-change">3 milestones in review</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Projects Won</div>
+          <div class="stat-value blue">34</div>
+          <div class="stat-change">All time</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">All Time</div>
+          <div class="stat-value red">$12,400</div>
+          <div class="stat-change">Since account created</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Monthly Revenue</span></div>
+        <div class="card-body">
+          <div class="chart-bar-wrap" id="earnings-chart"></div>
+          <div class="chart-labels" id="earnings-labels"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Settings</div>
+          <div class="page-sub">Configure your account and bidder behaviour</div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Freelancer.com Account</span></div>
+            <div class="card-body">
+              <div class="setting-group">
+                <div class="setting-row">
+                  <div><div class="setting-name">Username</div><div class="setting-desc">Your Freelancer.com username</div></div>
+                  <div class="setting-control"><input type="text" placeholder="your_username"></div>
+                </div>
+                <div class="setting-row">
+                  <div><div class="setting-name">API Key</div><div class="setting-desc">From Freelancer developer portal</div></div>
+                  <div class="setting-control"><input type="password" placeholder="••••••••••••••••"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="card-title">Bid Behaviour</span></div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div><div class="setting-name">Max bids per day</div><div class="setting-desc">Freelancer allows 8–48/day</div></div>
+                <div class="setting-control"><input type="number" value="20" min="1" max="48" style="width:100px;"></div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-name">Bid delay</div><div class="setting-desc">Delay between each auto-bid</div></div>
+                <div class="setting-control">
+                  <select>
+                    <option>Instant (risky)</option>
+                    <option selected>1–3 min (recommended)</option>
+                    <option>5–10 min (safe)</option>
+                    <option>10–20 min (stealth)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-name">Only bid on verified clients</div><div class="setting-desc">Skip unverified payment projects</div></div>
+                <div class="setting-control">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-name">Skip projects with no NDA</div></div>
+                <div class="setting-control">
+                  <label class="toggle"><input type="checkbox"><span class="toggle-track"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Proposal Generation</span></div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div><div class="setting-name">Proposal tone</div><div class="setting-desc">How proposals are written</div></div>
+                <div class="setting-control">
+                  <select>
+                    <option>Professional</option>
+                    <option selected>Friendly & confident</option>
+                    <option>Concise / direct</option>
+                    <option>Consultative</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-name">Mention portfolio</div><div class="setting-desc">Auto-include portfolio links</div></div>
+                <div class="setting-control">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-name">Ask a question</div><div class="setting-desc">End each proposal with a relevant question</div></div>
+                <div class="setting-control">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="card-title">Notifications</span></div>
+            <div class="card-body">
+              <div class="setting-row">
+                <div><div class="setting-name">Email on reply</div></div>
+                <div class="setting-control">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div><div class="setting-name">Daily summary</div></div>
+                <div class="setting-control">
+                  <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INBOX -->
+    <div class="page" id="page-inbox">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Inbox</div>
+          <div class="page-sub">Client replies to your bids — respond directly here</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="refreshInbox()">↻ Refresh</button>
+        </div>
+      </div>
+      <div class="two-col" style="align-items:start">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-head">
+            <span class="card-title">Conversations</span>
+            <span class="badge badge-red" id="unread-count">3 unread</span>
+          </div>
+          <div style="padding:0" id="thread-list"></div>
+        </div>
+        <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;min-height:500px">
+          <div class="card-head" id="thread-header">
+            <span class="card-title" style="color:var(--muted)">Select a conversation</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px" id="thread-messages">
+            <div style="text-align:center;padding:40px 20px;color:var(--muted2)">
+              <div style="font-size:36px;margin-bottom:10px">💬</div>
+              <div style="font-size:13px">Click a conversation on the left</div>
+            </div>
+          </div>
+          <div style="padding:16px;border-top:1px solid var(--border)">
+            <div style="display:flex;gap:10px;align-items:flex-end">
+              <textarea id="reply-input" placeholder="Type your reply… or click AI Reply to generate one" rows="3" style="flex:1;resize:none;line-height:1.6"></textarea>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-success" style="white-space:nowrap;font-size:12px" onclick="generateReply()">✦ AI Reply</button>
+                <button class="btn btn-primary" style="white-space:nowrap;font-size:12px" onclick="sendReply()">Send →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIND DEVS -->
+    <div class="page" id="page-devs">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Find Devs</div>
+          <div class="page-sub">Browse freelancers to hire or collaborate with</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-body" style="padding:16px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px">Skill / keyword</div>
+              <input type="text" id="dev-search-skill" placeholder="e.g. React, WordPress…" style="width:100%">
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px">Min earnings</div>
+              <select id="dev-search-earnings" style="width:100%">
+                <option value="">Any earnings</option>
+                <option value="1000">$1K+</option>
+                <option value="10000">$10K+</option>
+                <option value="50000">$50K+</option>
+                <option value="100000">$100K+</option>
+              </select>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px">Sort by</div>
+              <select id="dev-search-sort" style="width:100%">
+                <option>Relevance</option>
+                <option>Earnings (high)</option>
+                <option>Hours worked</option>
+                <option>Success rate</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="searchDevs()" style="height:38px;padding:0 24px">Search</button>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px" id="dev-results-count">Showing 9 developers</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" id="devs-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- DEV PROFILE MODAL -->
+<div class="modal-overlay" id="dev-modal">
+  <div class="modal" style="width:600px;max-width:95vw">
+    <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:20px">
+      <div class="avatar" style="width:56px;height:56px;font-size:20px;border-radius:14px;flex-shrink:0" id="dev-modal-avatar"></div>
+      <div style="flex:1">
+        <div style="font-family:var(--font-head);font-size:18px;font-weight:700" id="dev-modal-name"></div>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px" id="dev-modal-title"></div>
+        <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap" id="dev-modal-stats"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div class="modal-label">Skills</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px" id="dev-modal-skills"></div>
+    </div>
+    <div style="margin-bottom:16px">
+      <div class="modal-label">About</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-top:4px" id="dev-modal-bio"></div>
+    </div>
+    <div style="margin-bottom:4px">
+      <div class="modal-label">Send a message</div>
+      <textarea id="dev-modal-msg" rows="4" placeholder="Hi, I came across your profile and would love to discuss a collaboration…" style="width:100%;resize:none;margin-top:6px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('dev-modal').classList.remove('show')">Close</button>
+      <button class="btn btn-success" onclick="generateDevMessage()">✦ AI Message</button>
+      <button class="btn btn-primary" onclick="sendDevMessage()">Send Message →</button>
+    </div>
+  </div>
+</div>
+
+<!-- BID NOW MODAL -->
+<div class="modal-overlay" id="proposal-modal">
+  <div class="modal" style="width:640px">
+
+    <!-- Job info bar -->
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="modal-job-title">Job title</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="modal-job-meta">Budget · Posted</div>
+      </div>
+      <div style="font-size:15px;font-weight:700;color:var(--accent3);flex-shrink:0" id="modal-job-budget"></div>
+    </div>
+
+    <!-- Step 1: Pick a script -->
+    <div id="bid-step-1">
+      <div class="modal-title" style="margin-bottom:4px">Choose a Bid Script</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">Select a template to start with — you can edit it before sending</div>
+
+      <div id="script-picker" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <!-- rendered by JS -->
+      </div>
+
+      <button class="btn" style="width:100%;justify-content:center;border-style:dashed;color:var(--muted)" onclick="nav('scripts');closeModal()">
+        + Create a new script
+      </button>
+
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="next-step-btn" onclick="goToBidStep2()" disabled>Next — Edit Proposal →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Edit & send -->
+    <div id="bid-step-2" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+        <button class="btn" style="font-size:12px;padding:5px 12px" onclick="goToBidStep1()">← Back</button>
+        <div>
+          <div class="modal-title" style="margin-bottom:0">Edit Your Proposal</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Using: <span id="selected-script-name" style="color:var(--accent)"></span></div>
+        </div>
+      </div>
+
+      <div class="generating" id="gen-indicator" style="display:none;margin-bottom:14px">
+        <div class="spinner"></div>
+        AI is personalising your proposal…
+      </div>
+
+      <div class="modal-field">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="modal-label" style="margin:0">Your proposal</div>
+          <button class="btn btn-success" style="font-size:11px;padding:4px 12px" onclick="generateProposal()">✦ AI Personalise</button>
+        </div>
+        <textarea id="proposal-text" rows="10" style="width:100%;line-height:1.7;resize:vertical" placeholder="Your proposal will appear here…"></textarea>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-end">
+        <div class="modal-field" style="flex:1;margin-bottom:0">
+          <div class="modal-label">Bid amount (USD)</div>
+          <input type="number" id="bid-amount" placeholder="e.g. 250" style="width:100%;margin-top:6px">
+        </div>
+        <div class="modal-field" style="flex:1;margin-bottom:0">
+          <div class="modal-label">Delivery (days)</div>
+          <input type="number" id="bid-days" placeholder="e.g. 7" value="7" style="width:100%;margin-top:6px">
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="sendProposal()" style="padding:9px 24px">
+          ⚡ Send Bid →
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ADD RULE MODAL -->
+<div class="modal-overlay" id="rule-modal">
+  <div class="modal">
+    <div class="modal-title">New Bidding Rule</div>
+    <div class="modal-sub">Define what jobs to bid on automatically</div>
+    <div class="modal-field">
+      <div class="modal-label">Rule name</div>
+      <input type="text" id="new-rule-name" placeholder="e.g. React Developer">
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Keywords (press Enter to add)</div>
+      <div class="tag-input-wrap" id="keywords-wrap">
+        <input class="tag-input" id="keyword-input" placeholder="Type keyword + Enter" onkeydown="addKeyword(event)">
+      </div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Budget range (USD)</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="number" id="budget-min" placeholder="Min" style="width:110px;">
+        <span style="color:var(--muted)">–</span>
+        <input type="number" id="budget-max" placeholder="Max" style="width:110px;">
+      </div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Bid at (% of budget max)</div>
+      <input type="range" min="40" max="90" value="65" id="bid-pct" oninput="document.getElementById('bid-pct-val').textContent=this.value+'%'">
+      <span id="bid-pct-val" style="font-size:13px;color:var(--accent);margin-left:10px;">65%</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRuleModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRule()">Save Rule</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ——— STATE ———
+let bidderActive = true
+let rules = [
+  { id:1, name:'Web Development', keywords:['React','Node.js','PHP','JavaScript'], minBudget:50, maxBudget:500, pct:65, active:true },
+  { id:2, name:'API / Backend', keywords:['REST API','Node.js','Python','Webhooks'], minBudget:80, maxBudget:800, pct:70, active:true },
+]
+let keywords = []
+let currentJob = { title:'', budget:'' }
+let bidsToday = 0
+
+const jobs = [
+  { title:'Build a React dashboard for SaaS', budget:'$200–500', tags:['React','Node.js'], time:'3 min ago', cat:'web' },
+  { title:'WordPress custom plugin — WooCommerce', budget:'$80–200', tags:['WordPress','PHP'], time:'5 min ago', cat:'web' },
+  { title:'Python scraper for product listings', budget:'$100–300', tags:['Python','Scraping'], time:'12 min ago', cat:'python' },
+  { title:'REST API for mobile app backend', budget:'$150–400', tags:['REST','Node.js'], time:'18 min ago', cat:'api' },
+  { title:'React Native delivery app', budget:'$300–800', tags:['React Native','Mobile'], time:'24 min ago', cat:'mobile' },
+  { title:'Figma to HTML landing page', budget:'$50–150', tags:['HTML','CSS'], time:'31 min ago', cat:'design' },
+  { title:'Full-stack SaaS MVP build', budget:'$500–2000', tags:['React','Node.js','AWS'], time:'40 min ago', cat:'web' },
+  { title:'Django REST API with PostgreSQL', budget:'$200–600', tags:['Django','Python'], time:'55 min ago', cat:'api' },
+  { title:'iOS app for gym management', budget:'$400–1200', tags:['Swift','iOS'], time:'1 hr ago', cat:'mobile' },
+  { title:'UI/UX design for fintech dashboard', budget:'$150–500', tags:['Figma','UI/UX'], time:'1 hr ago', cat:'design' },
+  { title:'Web scraper with rotating proxies', budget:'$80–250', tags:['Python','Scraping'], time:'2 hr ago', cat:'python' },
+  { title:'Stripe integration for subscription platform', budget:'$100–300', tags:['Stripe','Node.js'], time:'2 hr ago', cat:'api' },
+]
+
+const proposals = [
+  { title:'Build React dashboard for SaaS analytics', amount:'$250', time:'2 min ago', status:'sent' },
+  { title:'API integration for e-commerce platform', amount:'$180', time:'1 hr ago', status:'replied' },
+  { title:'Fix Node.js server performance issues', amount:'$120', time:'3 hr ago', status:'pending' },
+  { title:'Python automation script for data export', amount:'$90', time:'5 hr ago', status:'sent' },
+  { title:'WordPress theme customisation', amount:'$150', time:'Yesterday', status:'declined' },
+]
+
+const scriptTemplates = [
+  { name:'Web Developer — General', text:'Hi [Name],\n\nI noticed your project requires [SKILL] — this is exactly my specialty. I\'ve built [X] similar projects over the past [Y] years.\n\nI can start immediately and deliver on time. Quick question: what\'s your preferred tech stack?' },
+  { name:'API / Backend Specialist', text:'Hi [Name],\n\nYour project caught my eye — building [API TYPE] is something I\'ve done extensively with REST, GraphQL, and webhooks.\n\nI\'ll keep the architecture clean and well-documented. What database are you currently using?' },
+]
+
+// ——— NAV ———
+function nav(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  const pg = document.getElementById('page-'+page)
+  if(pg) pg.classList.add('active')
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const txt = item.textContent.toLowerCase()
+    if(
+      (page==='dashboard'  && txt.includes('dashboard')) ||
+      (page==='jobs'       && txt.includes('job feed')) ||
+      (page==='inbox'      && txt.includes('inbox')) ||
+      (page==='proposals'  && txt.includes('my bids')) ||
+      (page==='scripts'    && txt.includes('bid scripts')) ||
+      (page==='earnings'   && txt.includes('earnings')) ||
+      (page==='devs'       && txt.includes('find devs')) ||
+      (page==='settings'   && txt.includes('settings'))
+    ) item.classList.add('active')
+  })
+  if(page==='jobs')      renderJobs()
+  if(page==='proposals') renderProposals()
+  if(page==='scripts')   renderScripts()
+  if(page==='earnings')  renderEarnings()
+  if(page==='inbox')     renderInbox()
+  if(page==='devs')      renderDevs()
+}
+
+// ——— API BASE ———
+const API = 'http://localhost:3001/api'
+const apiGet  = (path) => fetch(API+path).then(r=>r.json()).catch(()=>null)
+const apiPost = (path, body) => fetch(API+path, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()).catch(()=>null)
+
+// ——— AVATAR COLOR POOL ———
+const avatarColors = ['#e74c3c','#2980b9','#8e44ad','#27ae60','#f39c12','#1abc9c','#e67e22','#c0392b','#16a085','#2c3e50']
+function colorFor(str) { let h=0; for(let c of str) h=(h<<5)-h+c.charCodeAt(0); return avatarColors[Math.abs(h)%avatarColors.length] }
+function initialsFor(name) { return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() }
+function timeAgo(iso) {
+  if(!iso) return ''
+  const s = Math.floor((Date.now()-new Date(iso).getTime())/1000)
+  if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago'
+  if(s<86400) return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'
+}
+
+// ——— INBOX ———
+let activeThread = null
+let cachedThreads = []
+let activeThreadMessages = []
+
+async function renderInbox() {
+  const list = document.getElementById('thread-list')
+  list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:13px">Loading…</div>'
+
+  const data = await apiGet('/inbox')
+  cachedThreads = data?.threads || []
+
+  const unread = data?.unreadCount || cachedThreads.filter(t=>t.unread).length
+  document.getElementById('unread-count').textContent = unread + ' unread'
+  document.getElementById('badge-inbox').textContent = unread || ''
+  document.getElementById('badge-inbox').style.display = unread > 0 ? '' : 'none'
+
+  if (cachedThreads.length === 0) {
+    list.innerHTML = '<div style="padding:32px 20px;text-align:center;color:var(--muted2);font-size:13px">No messages yet — bids that get replies will appear here</div>'
+    return
+  }
+
+  list.innerHTML = cachedThreads.map(t => {
+    const initials = initialsFor(t.client_name)
+    const color = colorFor(t.client_name)
+    const isActive = activeThread === t.thread_id
+    return `
+    <div onclick="openThread('${t.thread_id}')" style="
+      display:flex;align-items:flex-start;gap:12px;padding:14px 20px;
+      cursor:pointer;border-bottom:1px solid var(--border);
+      background:${isActive?'rgba(108,99,255,0.08)':'transparent'};transition:background 0.15s;
+    " onmouseover="this.style.background='rgba(108,99,255,0.06)'" onmouseout="this.style.background='${isActive?'rgba(108,99,255,0.08)':'transparent'}'">
+      <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:12px;font-weight:700;position:relative;">
+        ${initials}
+        ${t.unread ? '<div style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:var(--accent2);border-radius:50%;border:2px solid var(--bg2)"></div>' : ''}
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="font-size:13px;font-weight:${t.unread?'600':'400'};color:${t.unread?'var(--text)':'var(--muted)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.client_name}</div>
+          <div style="font-size:11px;color:var(--muted2);flex-shrink:0">${timeAgo(t.last_time)}</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${t.subject}</div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.last_message||''}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function openThread(threadId) {
+  activeThread = threadId
+  const t = cachedThreads.find(t=>t.thread_id===threadId)
+  if(!t) return
+
+  // Mark read in UI immediately
+  t.unread = false
+  renderInbox()
+
+  const color = colorFor(t.client_name)
+  const initials = initialsFor(t.client_name)
+
+  document.getElementById('thread-header').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <div style="width:32px;height:32px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:11px;font-weight:700;flex-shrink:0">${initials}</div>
+      <div>
+        <div style="font-size:14px;font-weight:600">${t.client_name}</div>
+        <div style="font-size:12px;color:var(--muted)">${t.subject}</div>
+      </div>
+    </div>
+    <a href="https://www.freelancer.com/messages" target="_blank" class="btn" style="font-size:11px;padding:4px 12px">Open on Freelancer ↗</a>
+  `
+
+  const msgs = document.getElementById('thread-messages')
+  msgs.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">Loading messages…</div>'
+
+  const messages = await apiGet(`/inbox/${threadId}/messages`)
+  activeThreadMessages = messages || []
+
+  if(!messages || messages.length === 0) {
+    msgs.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted2);font-size:12px">No messages yet</div>'
+    return
+  }
+
+  msgs.innerHTML = messages.map(m => `
+    <div style="display:flex;justify-content:${m.is_me?'flex-end':'flex-start'}">
+      <div style="max-width:75%;padding:12px 14px;border-radius:${m.is_me?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${m.is_me?'var(--accent)':'var(--bg3)'};border:1px solid ${m.is_me?'var(--accent)':'var(--border2)'};font-size:13px;line-height:1.6;">
+        <div>${m.text}</div>
+        <div style="font-size:10px;color:${m.is_me?'rgba(255,255,255,0.6)':'var(--muted2)'};margin-top:6px;text-align:right">${timeAgo(m.time)}</div>
+      </div>
+    </div>
+  `).join('')
+  msgs.scrollTop = msgs.scrollHeight
+  document.getElementById('reply-input').value = ''
+}
+
+async function generateReply() {
+  if(!activeThread) return
+  const t = cachedThreads.find(t=>t.thread_id===activeThread)
+  const lastClient = activeThreadMessages.filter(m=>!m.is_me).slice(-1)[0]
+  if(!lastClient) return
+
+  const ta = document.getElementById('reply-input')
+  ta.value = 'Generating…'
+  ta.disabled = true
+
+  const data = await apiPost(`/inbox/${activeThread}/generate-reply`, {
+    lastClientMessage: lastClient.text,
+    projectTitle: t?.subject || '',
+    tone: 'friendly'
+  })
+
+  ta.disabled = false
+  ta.value = ''
+  const text = data?.text || 'Could not generate reply — check your Anthropic API key in .env'
+  let i = 0
+  const iv = setInterval(()=>{ ta.value += text[i]; i++; if(i>=text.length) clearInterval(iv) }, 12)
+}
+
+async function sendReply() {
+  const input = document.getElementById('reply-input')
+  const text = input.value.trim()
+  if(!text || !activeThread) return
+
+  input.value = ''
+  const result = await apiPost(`/inbox/${activeThread}/reply`, { message: text })
+
+  if(result?.success) {
+    // Optimistically add to UI
+    const msgs = document.getElementById('thread-messages')
+    const bubble = document.createElement('div')
+    bubble.style.cssText = 'display:flex;justify-content:flex-end'
+    bubble.innerHTML = `<div style="max-width:75%;padding:12px 14px;border-radius:14px 14px 4px 14px;background:var(--accent);border:1px solid var(--accent);font-size:13px;line-height:1.6;"><div>${text}</div><div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:6px;text-align:right">just now</div></div>`
+    msgs.appendChild(bubble)
+    msgs.scrollTop = msgs.scrollHeight
+  } else {
+    alert('Failed to send — check your Freelancer token in .env')
+  }
+}
+
+async function refreshInbox() {
+  event.currentTarget.textContent = '↻ Checking…'
+  await renderInbox()
+  event.currentTarget.textContent = '↻ Refresh'
+}
+
+// ——— FIND DEVS — built-in data, always works ———
+let currentDev = null
+
+const DEVS = [
+  { name:'Rashed B.', username:'rashedb101', title:'WordPress Designer & Elementor Pro Expert', country:'🇧🇩 Bangladesh', rate:28, success:100, earned:'$30K+', earnedRaw:30000, hours:718, skills:['Elementor','WordPress','Landing Page','WooCommerce','Web Design','Custom Dev'], bio:'Top WordPress & Elementor expert with 700+ hours on Freelancer. I specialise in high-converting landing pages, full WooCommerce builds, and custom WordPress development. Fast delivery, pixel-perfect results.' },
+  { name:'Asma K.', username:'asmak_design', title:'Webflow & Figma Design Expert', country:'🇵🇰 Pakistan', rate:15, success:100, earned:'$10K+', earnedRaw:10000, hours:782, skills:['Webflow','Web Development','Landing Page','Figma','Adaptive Design','Responsive'], bio:'Website Design Expert specialising in Webflow, Figma, and landing pages. I create visually stunning, SEO-optimised websites that convert visitors into customers.' },
+  { name:'Taras K.', username:'taras_webflow', title:'Webflow Expert | Figma → Website | SEO', country:'🇺🇦 Ukraine', rate:29, success:100, earned:'$100K+', earnedRaw:100000, hours:7202, skills:['Webflow','WordPress','Landing Page','UI/UX','Page Speed','Readymag'], bio:'Webflow Expert with 7200+ hours and $100K+ earned. I transform creative ideas into high-performing, conversion-focused websites. Speciality: Figma to Webflow builds.' },
+  { name:'David C.', username:'davidcoder_ph', title:'Full-Stack JS Developer (React + Node)', country:'🇵🇭 Philippines', rate:22, success:98, earned:'$50K+', earnedRaw:50000, hours:3100, skills:['React','Node.js','REST API','MongoDB','Express','TypeScript'], bio:'Full-stack JavaScript developer with 3000+ hours. I build scalable web apps, REST APIs, and SaaS platforms. Fast turnaround and clean code every time.' },
+  { name:'Maria S.', username:'mariasdev', title:'Python & Django Backend Developer', country:'🇷🇴 Romania', rate:35, success:99, earned:'$75K+', earnedRaw:75000, hours:4800, skills:['Python','Django','PostgreSQL','AWS','Docker','FastAPI'], bio:'Senior Python/Django developer. I build backend systems, REST APIs, and data pipelines. AWS certified. Clean architecture is my passion.' },
+  { name:'Ahmed F.', username:'ahmedf_mobile', title:'React Native Mobile App Developer', country:'🇪🇬 Egypt', rate:18, success:97, earned:'$20K+', earnedRaw:20000, hours:1540, skills:['React Native','iOS','Android','Firebase','Expo','Push Notifications'], bio:"Mobile developer specialising in React Native. I've shipped 15+ apps to both the App Store and Play Store. Great with Firebase integrations." },
+  { name:'Lena V.', username:'lena_uxdesign', title:'Senior UI/UX Designer & Brand Strategist', country:'🇷🇺 Russia', rate:40, success:100, earned:'$120K+', earnedRaw:120000, hours:9200, skills:['Figma','UI/UX','Branding','Prototyping','User Research','Adobe XD'], bio:'UI/UX designer with $120K+ earned and 9000+ hours. I design SaaS dashboards, mobile apps, and complete brand identities.' },
+  { name:'Ken O.', username:'keno_seo', title:'SEO Specialist & Content Strategist', country:'🇳🇬 Nigeria', rate:20, success:96, earned:'$15K+', earnedRaw:15000, hours:890, skills:['SEO','Content Writing','WordPress','Google Analytics','Ahrefs','Technical SEO'], bio:"SEO specialist and content strategist. I've ranked 50+ websites on page 1 of Google. Technical SEO, keyword research, content strategy." },
+  { name:'Sofia R.', username:'sofia_shopify', title:'Shopify Expert & E-commerce Developer', country:'🇦🇷 Argentina', rate:25, success:99, earned:'$40K+', earnedRaw:40000, hours:2600, skills:['Shopify','E-commerce','Liquid','HTML/CSS','Klaviyo','Conversion Rate'], bio:'Shopify expert with 2600+ hours. I build and customise stores — theme development, app integrations, and conversion rate optimisation.' },
+  { name:'Mehwish S.', username:'mehwish_wp', title:'WordPress & WooCommerce Specialist', country:'🇵🇰 Pakistan', rate:16, success:99, earned:'$25K+', earnedRaw:25000, hours:2100, skills:['WordPress','WooCommerce','Elementor','PHP','CSS','Theme Dev'], bio:'WordPress and WooCommerce specialist with 5+ years experience. I build fast, secure, and scalable online stores and business websites.' },
+  { name:'Joseph A.', username:'joseph_fullstack', title:'Full-Stack Developer | React | Laravel', country:'🇬🇭 Ghana', rate:20, success:97, earned:'$18K+', earnedRaw:18000, hours:1300, skills:['React','Laravel','PHP','MySQL','Vue.js','REST API'], bio:'Full-stack developer with expertise in React and Laravel. I deliver clean, maintainable code and always communicate proactively throughout projects.' },
+  { name:'Nikita S.', username:'nikita_motion', title:'Motion Designer & Video Editor', country:'🇷🇺 Russia', rate:30, success:98, earned:'$35K+', earnedRaw:35000, hours:2900, skills:['After Effects','Motion Design','Video Editing','Premiere Pro','2D Animation','Explainer'], bio:'Motion designer and video editor with 2900+ hours. I create engaging explainer videos, social media content, and branded animations.' },
+]
+
+let allDevs = [...DEVS]
+
+function renderDevs() {
+  paintDevGrid(allDevs)
+}
+
+function paintDevGrid(devList) {
+  const grid = document.getElementById('devs-grid')
+  document.getElementById('dev-results-count').textContent = `Showing ${devList.length} developer${devList.length!==1?'s':''}`
+
+  if(devList.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;padding:48px;text-align:center;color:var(--muted2);font-size:13px">No developers match — try a different keyword</div>'
+    return
+  }
+
+  grid.innerHTML = devList.map((d,i) => {
+    const color = colorFor(d.name)
+    const initials = initialsFor(d.name)
+    const idx = allDevs.indexOf(d)
+    return `
+    <div class="card" style="cursor:pointer;transition:border-color 0.15s,transform 0.15s;margin-bottom:0"
+         onclick="openDevModal(${idx})"
+         onmouseover="this.style.borderColor='rgba(108,99,255,0.4)';this.style.transform='translateY(-2px)'"
+         onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
+      <div class="card-body">
+        <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+          <div style="width:46px;height:46px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:15px;font-weight:700;flex-shrink:0;box-shadow:0 0 0 3px rgba(255,255,255,0.06)">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:600;margin-bottom:2px">${d.name}</div>
+            <div style="font-size:11.5px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${d.title}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;font-size:12px;margin-bottom:10px;flex-wrap:wrap">
+          <span>${d.country}</span>
+          <span style="color:var(--muted)">💵 $${d.rate}/hr</span>
+          <span style="color:var(--accent3)">✅ ${d.success}%</span>
+          <span style="color:#f59e0b">🏆 ${d.earned}</span>
+        </div>
+
+        <div style="font-size:12px;color:var(--muted2);margin-bottom:12px">⏱ ${d.hours.toLocaleString()} hrs worked</div>
+
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px">
+          ${d.skills.slice(0,4).map(s=>`<span class="job-tag">${s}</span>`).join('')}
+          ${d.skills.length>4?`<span class="job-tag">+${d.skills.length-4} more</span>`:''}
+        </div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" style="flex:1;justify-content:center;font-size:12px" onclick="event.stopPropagation();openDevModal(${idx})">
+            View & Message
+          </button>
+          <a href="https://www.freelancer.com/u/${d.username}" target="_blank"
+             style="display:flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);color:var(--muted);font-size:12px;text-decoration:none;transition:all 0.15s;flex-shrink:0"
+             onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text)'"
+             onmouseout="this.style.background='transparent';this.style.color='var(--muted)'"
+             onclick="event.stopPropagation()"
+             title="Open Freelancer profile">
+            ↗ Profile
+          </a>
+        </div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function searchDevs() {
+  const query = document.getElementById('dev-search-skill').value.trim().toLowerCase()
+  const minEarnings = parseInt(document.getElementById('dev-search-earnings').value) || 0
+  const sort = document.getElementById('dev-search-sort').value
+
+  let filtered = DEVS.filter(d => {
+    const matchQuery = !query ||
+      d.skills.some(s => s.toLowerCase().includes(query)) ||
+      d.title.toLowerCase().includes(query) ||
+      d.name.toLowerCase().includes(query) ||
+      d.bio.toLowerCase().includes(query)
+    const matchEarnings = !minEarnings || d.earnedRaw >= minEarnings
+    return matchQuery && matchEarnings
+  })
+
+  if(sort === 'Earnings (high)') filtered.sort((a,b) => b.earnedRaw - a.earnedRaw)
+  else if(sort === 'Hours worked') filtered.sort((a,b) => b.hours - a.hours)
+  else if(sort === 'Success rate') filtered.sort((a,b) => b.success - a.success)
+
+  allDevs = filtered
+  paintDevGrid(filtered)
+}
+
+function openDevModal(idx) {
+  currentDev = allDevs[idx]
+  if(!currentDev) return
+  const d = currentDev
+  const color = colorFor(d.name)
+
+  document.getElementById('dev-modal-avatar').textContent = initialsFor(d.name)
+  document.getElementById('dev-modal-avatar').style.background = color
+  document.getElementById('dev-modal-name').textContent = d.name
+  document.getElementById('dev-modal-title').textContent = d.title
+
+  document.getElementById('dev-modal-stats').innerHTML = `
+    <span style="font-size:12px;color:var(--accent3)">✅ ${d.success}% success</span>
+    <span style="font-size:12px;color:#f59e0b">🏆 ${d.earned} earned</span>
+    <span style="font-size:12px;color:var(--muted)">⏱ ${d.hours.toLocaleString()} hrs</span>
+    <span style="font-size:12px;color:var(--muted)">💵 $${d.rate}/hr</span>
+    <span style="font-size:12px">${d.country}</span>
+  `
+  document.getElementById('dev-modal-skills').innerHTML = d.skills.map(s=>`<span class="job-tag">${s}</span>`).join('')
+  document.getElementById('dev-modal-bio').textContent = d.bio
+
+  // Update modal actions to include real profile link
+  document.querySelector('#dev-modal .modal-actions').innerHTML = `
+    <button class="btn" onclick="document.getElementById('dev-modal').classList.remove('show')">Close</button>
+    <a href="https://www.freelancer.com/u/${d.username}" target="_blank" class="btn" style="text-decoration:none">
+      View on Freelancer ↗
+    </a>
+    <button class="btn btn-success" onclick="generateDevMessage()">✦ AI Message</button>
+    <button class="btn btn-primary" onclick="sendDevMessage()">Send →</button>
+  `
+
+  document.getElementById('dev-modal-msg').value = ''
+  document.getElementById('dev-modal').classList.add('show')
+}
+
+function generateDevMessage() {
+  if(!currentDev) return
+  const d = currentDev
+  const ta = document.getElementById('dev-modal-msg')
+  ta.value = ''
+  const messages = [
+    `Hi ${d.name.split(' ')[0]},\n\nI came across your profile and I'm really impressed — especially your ${d.skills[0]} work and ${d.earned} in earnings on Freelancer.\n\nI have an upcoming project that would be a great fit for your skills. Would you be open to a quick chat about a potential collaboration?\n\nLooking forward to connecting!`,
+    `Hi ${d.name.split(' ')[0]},\n\nYour profile caught my attention — ${d.hours.toLocaleString()} hours and ${d.success}% success rate is impressive.\n\nI'm building something in the ${d.skills[0]} space and I think you'd be a great fit. Are you available for new projects?\n\nLet me know!`,
+    `Hi ${d.name.split(' ')[0]},\n\nI found your profile while searching for ${d.skills[0]} experts. Your background and results speak for themselves.\n\nI'd love to discuss a project I'm working on — it aligns well with your expertise in ${d.skills.slice(0,2).join(' and ')}. Are you open to a quick conversation?\n\nBest regards`,
+  ]
+  const text = messages[Math.floor(Math.random()*messages.length)]
+  let i = 0
+  const iv = setInterval(()=>{ ta.value += text[i]; i++; if(i>=text.length) clearInterval(iv) }, 12)
+}
+
+function sendDevMessage() {
+  const msg = document.getElementById('dev-modal-msg').value.trim()
+  if(!msg) { alert('Write or generate a message first'); return }
+  document.getElementById('dev-modal').classList.remove('show')
+  // Open Freelancer messages page directly — most reliable cross-browser
+  const profileUrl = `https://www.freelancer.com/u/${currentDev.username}`
+  showToast(`✓ Opening ${currentDev.name}'s profile to message them`)
+  setTimeout(() => window.open(profileUrl, '_blank'), 600)
+}
+
+// ——— BIDDER TOGGLE ———
+function toggleBidder() {
+  bidderActive = !bidderActive
+  const dot = document.getElementById('bidder-dot')
+  const txt = document.getElementById('bidder-status-text')
+  const btn = document.getElementById('pause-btn')
+  const badge = document.getElementById('badge-bidder')
+  if(bidderActive) {
+    dot.style.background = 'var(--accent3)'; dot.style.boxShadow = '0 0 8px var(--accent3)'
+    txt.textContent = 'Auto Bidder Running'; txt.style.color = 'var(--accent3)'
+    btn.textContent = '⏸ Pause All'
+    badge.textContent = 'ON'; badge.className = 'nav-badge green'
+  } else {
+    dot.style.background = 'var(--muted2)'; dot.style.boxShadow = 'none'
+    txt.textContent = 'Auto Bidder Paused'; txt.style.color = 'var(--muted)'
+    btn.textContent = '▶ Resume All'
+    badge.textContent = 'OFF'; badge.className = 'nav-badge'
+  }
+}
+
+// ——— RULES ———
+function renderRules() {
+  const el = document.getElementById('rules-list')
+  const active = rules.filter(r=>r.active).length
+  document.getElementById('rule-count-text').textContent = rules.length + ' rules'
+  document.getElementById('bidder-rule-count').textContent = active + ' active rules'
+  el.innerHTML = rules.map(r => `
+    <div class="rule-row" id="rule-row-${r.id}">
+      <div class="rule-info">
+        <div class="rule-name">${r.name}</div>
+        <div class="rule-meta">
+          ${r.keywords.map(k=>`<span class="rule-tag">${k}</span>`).join('')}
+          <span>$${r.minBudget}–${r.maxBudget}</span>
+          <span>Bid at ${r.pct}% of max</span>
+        </div>
+      </div>
+      <div class="rule-actions">
+        <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="deleteRule(${r.id})">Delete</button>
+        <label class="toggle"><input type="checkbox" ${r.active?'checked':''} onchange="toggleRule(${r.id},this.checked)"><span class="toggle-track"></span></label>
+      </div>
+    </div>
+  `).join('')
+}
+
+function toggleRule(id, val) {
+  rules.find(r=>r.id===id).active = val
+  const active = rules.filter(r=>r.active).length
+  document.getElementById('bidder-rule-count').textContent = active + ' active rules'
+}
+function deleteRule(id) {
+  rules = rules.filter(r=>r.id!==id)
+  renderRules()
+}
+
+// ——— RULE MODAL ———
+function openRuleModal() { keywords=[]; renderKeywords(); document.getElementById('rule-modal').classList.add('show') }
+function closeRuleModal() { document.getElementById('rule-modal').classList.remove('show') }
+function addKeyword(e) {
+  if(e.key==='Enter') {
+    const val = e.target.value.trim()
+    if(val && !keywords.includes(val)) { keywords.push(val); renderKeywords() }
+    e.target.value = ''
+  }
+}
+function renderKeywords() {
+  const wrap = document.getElementById('keywords-wrap')
+  const input = document.getElementById('keyword-input')
+  wrap.innerHTML = ''
+  keywords.forEach(k => {
+    const chip = document.createElement('div')
+    chip.className = 'tag-chip'
+    chip.innerHTML = k + ' ✕'
+    chip.onclick = () => { keywords = keywords.filter(x=>x!==k); renderKeywords() }
+    wrap.appendChild(chip)
+  })
+  wrap.appendChild(input)
+  input.onkeydown = addKeyword
+}
+function saveRule() {
+  const name = document.getElementById('new-rule-name').value.trim()
+  if(!name) return alert('Enter a rule name')
+  rules.push({
+    id: Date.now(),
+    name,
+    keywords: keywords.length ? keywords : ['General'],
+    minBudget: parseInt(document.getElementById('budget-min').value)||50,
+    maxBudget: parseInt(document.getElementById('budget-max').value)||500,
+    pct: parseInt(document.getElementById('bid-pct').value),
+    active: true
+  })
+  closeRuleModal()
+  renderRules()
+}
+
+// ——— JOBS ———
+// ——— JOBS — live from Freelancer via backend scraper ———
+let allJobs = []
+
+async function renderJobs(filter='') {
+  const el = document.getElementById('jobs-list')
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted2);font-size:13px"><div style="font-size:24px;margin-bottom:10px">🔍</div>Loading live jobs from Freelancer…</div>'
+
+  const url = `/api/jobs?limit=20${filter&&filter!=='all'?'&category='+filter:''}`
+  const data = await apiGet(url)
+
+  if(data?.jobs?.length) {
+    allJobs = data.jobs
+    paintJobs(allJobs, data.source)
+  } else {
+    // Frontend fallback when no backend running
+    const fallback = [
+      { id:'f1', title:'Build a React dashboard for SaaS analytics', budget:'$200–500', tags:['React','Node.js'], cat:'web', time:'3 min ago', bidCount:4, url:'https://www.freelancer.com/jobs/react/' },
+      { id:'f2', title:'WordPress custom plugin — WooCommerce', budget:'$80–200', tags:['WordPress','PHP'], cat:'web', time:'5 min ago', bidCount:7, url:'https://www.freelancer.com/jobs/wordpress/' },
+      { id:'f3', title:'Python scraper for product listings', budget:'$100–300', tags:['Python','Scraping'], cat:'python', time:'12 min ago', bidCount:3, url:'https://www.freelancer.com/jobs/python/' },
+      { id:'f4', title:'REST API for mobile app backend', budget:'$150–400', tags:['REST','Node.js'], cat:'api', time:'18 min ago', bidCount:5, url:'https://www.freelancer.com/jobs/api/' },
+      { id:'f5', title:'React Native delivery app', budget:'$300–800', tags:['React Native','Mobile'], cat:'mobile', time:'24 min ago', bidCount:9, url:'https://www.freelancer.com/jobs/react-native/' },
+      { id:'f6', title:'Figma to HTML landing page', budget:'$50–150', tags:['HTML','CSS'], cat:'design', time:'31 min ago', bidCount:12, url:'https://www.freelancer.com/jobs/html/' },
+      { id:'f7', title:'Full-stack SaaS MVP', budget:'$500–2000', tags:['React','Node.js'], cat:'web', time:'40 min ago', bidCount:6, url:'https://www.freelancer.com/jobs/software-development/' },
+      { id:'f8', title:'Django REST API with PostgreSQL', budget:'$200–600', tags:['Django','Python'], cat:'api', time:'55 min ago', bidCount:4, url:'https://www.freelancer.com/jobs/django/' },
+      { id:'f9', title:'Shopify store setup + customisation', budget:'$150–400', tags:['Shopify'], cat:'web', time:'1 hr ago', bidCount:8, url:'https://www.freelancer.com/jobs/shopify/' },
+      { id:'f10', title:'UI/UX design for fintech dashboard', budget:'$150–500', tags:['Figma','UI/UX'], cat:'design', time:'1 hr ago', bidCount:3, url:'https://www.freelancer.com/jobs/ui-ux/' },
+      { id:'f11', title:'SEO audit and optimisation', budget:'$50–200', tags:['SEO'], cat:'seo', time:'2 hr ago', bidCount:6, url:'https://www.freelancer.com/jobs/seo/' },
+      { id:'f12', title:'Chrome extension development', budget:'$100–350', tags:['JavaScript'], cat:'web', time:'2 hr ago', bidCount:5, url:'https://www.freelancer.com/jobs/javascript/' },
+    ]
+    allJobs = filter && filter!=='all' ? fallback.filter(j=>j.cat===filter) : fallback
+    paintJobs(allJobs, 'demo')
+  }
+}
+
+function paintJobs(jobList, source) {
+  const el = document.getElementById('jobs-list')
+  const sourceTag = source==='live'
+    ? '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(0,217,163,0.1);color:var(--accent3);border:1px solid rgba(0,217,163,0.2);margin-bottom:12px;display:inline-block">● Live from Freelancer.com</span>'
+    : '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.2);margin-bottom:12px;display:inline-block">⚡ Sample jobs — deploy to see live jobs</span>'
+
+  if(!jobList.length) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted2)">No jobs found</div>'
+    return
+  }
+
+  el.innerHTML = sourceTag + jobList.map(j => `
+    <div class="job-card">
+      <div class="job-top">
+        <div class="job-title">${j.title}</div>
+        <div class="job-budget">${j.budget}</div>
+      </div>
+      ${j.description?`<div class="job-desc">${j.description.slice(0,120)}${j.description.length>120?'…':''}</div>`:''}
+      <div class="job-footer">
+        ${(j.tags||[]).map(t=>`<span class="job-tag">${t}</span>`).join('')}
+        ${j.bidCount?`<span style="font-size:11px;color:var(--muted2)">💬 ${j.bidCount} bids</span>`:''}
+        <span class="job-meta">${j.time}</span>
+        <div style="display:flex;gap:6px;margin-left:auto">
+          <a href="${j.url}" target="_blank"
+             style="display:inline-flex;align-items:center;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid var(--border2);color:var(--muted);font-size:11px;text-decoration:none;transition:all 0.15s"
+             onmouseover="this.style.borderColor='rgba(108,99,255,0.3)';this.style.color='var(--text)'"
+             onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--muted)'">
+            View ↗
+          </a>
+          <button class="btn btn-success" style="font-size:11px;padding:5px 14px;font-weight:600"
+            onclick="openProposalModal('${j.title.replace(/'/g,"\\'").replace(/"/g,'&quot;')}','${j.budget}',${JSON.stringify(j.tags||[])}, '${j.url}')">
+            Bid now →
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('')
+}
+
+function filterJobs(cat) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'))
+  event.target.classList.add('active')
+  renderJobs(cat==='all'?'':cat)
+}
+
+async function refreshJobs() {
+  const btn = event?.currentTarget
+  if(btn){btn.textContent='↻ Loading…';btn.disabled=true}
+  await renderJobs()
+  if(btn){btn.textContent='↻ Refresh';btn.disabled=false}
+}
+
+// ——— PROPOSALS ———
+const statusBadge = {sent:'badge-green',replied:'badge-purple',pending:'badge-amber',declined:'badge-red'}
+const statusLabel = {sent:'Sent',replied:'Replied!',pending:'Pending',declined:'Declined'}
+function renderProposals() {
+  document.getElementById('proposals-list').innerHTML = proposals.map(p=>`
+    <div class="bid-item">
+      <div class="bid-dot ${p.status==='replied'?'replied':p.status==='pending'?'pending':'sent'}"></div>
+      <div class="bid-content">
+        <div class="bid-title">${p.title}</div>
+        <div class="bid-bottom">
+          <span class="bid-budget">${p.amount} proposed</span>
+          <span class="bid-time">${p.time}</span>
+          <span class="badge ${statusBadge[p.status]}">${statusLabel[p.status]}</span>
+        </div>
+      </div>
+    </div>
+  `).join('')
+}
+
+// ——— SCRIPTS ———
+function renderScripts() {
+  document.getElementById('scripts-list').innerHTML = scriptTemplates.map((s,i)=>`
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">${s.name}</span>
+        <button class="btn" style="font-size:11px;padding:4px 10px;" onclick="useScript(${i})">Use</button>
+      </div>
+      <div class="card-body">
+        <pre style="font-size:12px;color:var(--muted);white-space:pre-wrap;line-height:1.7;font-family:var(--font-body)">${s.text}</pre>
+      </div>
+    </div>
+  `).join('')
+}
+function addScript() {
+  const name = prompt('Script name:')
+  if(name) { scriptTemplates.push({name, text:'Hi [Name],\n\n[Write your script here]'}); renderScripts() }
+}
+function useScript(i) { openProposalModal('from script',''); document.getElementById('proposal-text').value = scriptTemplates[i].text }
+
+// ——— EARNINGS ———
+function renderEarnings() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun']
+  const vals = [820, 1100, 680, 1450, 1280, 1840]
+  const max = Math.max(...vals)
+  const chart = document.getElementById('earnings-chart')
+  const labels = document.getElementById('earnings-labels')
+  chart.innerHTML = vals.map(v=>`<div class="chart-bar" style="height:${Math.round(v/max*100)}%;" title="$${v}"></div>`).join('')
+  labels.innerHTML = months.map(m=>`<div class="chart-label">${m}</div>`).join('')
+}
+
+// ——— BID NOW MODAL ———
+let selectedScriptIdx = null
+
+function openProposalModal(title, budget, tags, jobUrl) {
+  currentJob = { title, budget, tags: tags || [], url: jobUrl || '' }
+  selectedScriptIdx = null
+
+  document.getElementById('modal-job-title').textContent = title
+  document.getElementById('modal-job-budget').textContent = budget
+  document.getElementById('modal-job-meta').textContent = (tags||[]).join(' · ')
+
+  const nums = (budget||'').match(/\d+/g)
+  document.getElementById('bid-amount').value = nums ? Math.round(parseInt(nums[nums.length-1]) * 0.7) : ''
+
+  goToBidStep1()
+  document.getElementById('proposal-modal').classList.add('show')
+}
+
+function goToBidStep1() {
+  document.getElementById('bid-step-1').style.display = 'block'
+  document.getElementById('bid-step-2').style.display = 'none'
+  selectedScriptIdx = null
+  document.getElementById('next-step-btn').disabled = true
+
+  // Render script picker
+  const picker = document.getElementById('script-picker')
+  picker.innerHTML = scriptTemplates.map((s, i) => `
+    <div id="script-option-${i}" onclick="selectScript(${i})" style="
+      padding:14px 16px;
+      border:1.5px solid var(--border);
+      border-radius:var(--radius-sm);
+      cursor:pointer;
+      transition:all 0.15s;
+      background:var(--bg3);
+    "
+    onmouseover="if(selectedScriptIdx!==${i}) this.style.borderColor='rgba(108,99,255,0.3)'"
+    onmouseout="if(selectedScriptIdx!==${i}) this.style.borderColor='var(--border)'">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s" id="script-radio-${i}">
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:500">${s.name}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.text.slice(0,80).replace(/\n/g,' ')}…</div>
+        </div>
+      </div>
+    </div>
+  `).join('')
+
+  if(scriptTemplates.length === 0) {
+    picker.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted2);font-size:13px;border:1px dashed var(--border);border-radius:var(--radius-sm)">No scripts yet — create one in Bid Scripts first</div>`
+  }
+}
+
+function selectScript(i) {
+  selectedScriptIdx = i
+
+  // Update all options visually
+  scriptTemplates.forEach((_, idx) => {
+    const opt = document.getElementById('script-option-'+idx)
+    const radio = document.getElementById('script-radio-'+idx)
+    if(!opt) return
+    if(idx === i) {
+      opt.style.borderColor = 'var(--accent)'
+      opt.style.background = 'rgba(108,99,255,0.08)'
+      radio.style.background = 'var(--accent)'
+      radio.style.borderColor = 'var(--accent)'
+      radio.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:#fff"></div>'
+    } else {
+      opt.style.borderColor = 'var(--border)'
+      opt.style.background = 'var(--bg3)'
+      radio.style.background = 'transparent'
+      radio.style.borderColor = 'var(--border2)'
+      radio.innerHTML = ''
+    }
+  })
+
+  document.getElementById('next-step-btn').disabled = false
+}
+
+function goToBidStep2() {
+  if(selectedScriptIdx === null) return
+  const script = scriptTemplates[selectedScriptIdx]
+
+  document.getElementById('bid-step-1').style.display = 'none'
+  document.getElementById('bid-step-2').style.display = 'block'
+  document.getElementById('selected-script-name').textContent = script.name
+
+  // Fill textarea with script, replacing placeholders
+  const filled = script.text
+    .replace(/\[PROJECT_TITLE\]/g, currentJob.title)
+    .replace(/\[Name\]/g, 'there')
+    .replace(/\[SKILLS\]/g, (currentJob.tags||[]).join(', ') || 'your required skills')
+    .replace(/\[AI_CUSTOM_PARAGRAPH\]/g, '')
+
+  document.getElementById('proposal-text').value = filled
+  document.getElementById('gen-indicator').style.display = 'none'
+}
+
+function closeModal() {
+  document.getElementById('proposal-modal').classList.remove('show')
+}
+
+async function generateProposal() {
+  const gen = document.getElementById('gen-indicator')
+  const ta = document.getElementById('proposal-text')
+  gen.style.display = 'flex'
+  ta.value = ''
+
+  const data = await apiPost('/proposals/generate', {
+    project: { title: currentJob.title, description: '', budget: { min:0, max:500, currency:'$' }, skills:[] },
+    tone: 'friendly'
+  })
+
+  gen.style.display = 'none'
+  const text = data?.text || `Hi there,\n\nI noticed your project "${currentJob.title}" and I'm confident I can deliver exactly what you need.\n\nI can start immediately. Quick question: do you have any existing designs or wireframes?\n\nLooking forward to working together!`
+  ta.value = ''
+  let i = 0
+  const iv = setInterval(()=>{ ta.value += text[i]; i++; if(i>=text.length) clearInterval(iv) }, 14)
+}
+
+async function sendProposal() {
+  const txt = document.getElementById('proposal-text').value.trim()
+  if(!txt) return alert('Write or generate a proposal first')
+  const amount = document.getElementById('bid-amount').value || ''
+
+  // Copy proposal to clipboard so they can paste it on Freelancer
+  try { await navigator.clipboard.writeText(txt) } catch(e) {}
+
+  // Save to local bid history
+  proposals.unshift({ title: currentJob.title, amount: amount ? '$'+amount : '?', time: 'Just now', status: 'sent' })
+  bidsToday++
+  const el = document.getElementById('dash-bids-today')
+  if(el) el.textContent = bidsToday
+
+  closeModal()
+
+  // Open the real Freelancer project page to submit the bid
+  if(currentJob.url && currentJob.url.includes('freelancer.com')) {
+    showToast('✓ Proposal copied! Opening Freelancer to submit…')
+    setTimeout(() => window.open(currentJob.url, '_blank'), 600)
+  } else {
+    showToast('✓ Proposal saved — open the job on Freelancer to submit')
+    window.open('https://www.freelancer.com/jobs/', '_blank')
+  }
+}
+
+// ——— SETTINGS — wired to backend ———
+async function loadSettings() {
+  const s = await apiGet('/settings')
+  if(!s) return
+  // max bids/day
+  const mbInput = document.querySelector('input[type=number][value="20"]')
+  if(mbInput && s.max_bids_per_day) mbInput.value = s.max_bids_per_day
+}
+
+async function saveSettings() {
+  const btn = event.currentTarget
+  const maxBids = document.querySelector('input[type=number]')?.value || '8'
+  await apiPost('/settings', { max_bids_per_day: maxBids })
+  btn.textContent = '✓ Saved!'
+  btn.style.background = 'var(--accent3)'
+  setTimeout(()=>{ btn.textContent='Save Changes'; btn.style.background='var(--accent)' }, 2000)
+}
+
+// ——— BIDDER TOGGLE — wired to backend ———
+async function toggleBidder() {
+  bidderActive = !bidderActive
+  const dot = document.getElementById('bidder-dot')
+  const txt = document.getElementById('bidder-status-text')
+  const btn = document.getElementById('pause-btn')
+  const badge = document.getElementById('badge-bidder')
+  if(bidderActive) {
+    await apiPost('/bidder/start', {})
+    dot.style.background='var(--accent3)'; dot.style.boxShadow='0 0 8px var(--accent3)'
+    txt.textContent='Auto Bidder Running'; txt.style.color='var(--accent3)'
+    btn.textContent='⏸ Pause All'
+    badge.textContent='ON'; badge.className='nav-badge green'
+  } else {
+    await apiPost('/bidder/pause', {})
+    dot.style.background='var(--muted2)'; dot.style.boxShadow='none'
+    txt.textContent='Auto Bidder Paused'; txt.style.color='var(--muted)'
+    btn.textContent='▶ Resume All'
+    badge.textContent='OFF'; badge.className='nav-badge'
+  }
+}
+
+// ——— RULES — wired to backend ———
+async function renderRules() {
+  const data = await apiGet('/rules') || rules
+  if(Array.isArray(data)) rules = data.map(r=>({...r, minBudget:r.min_budget||r.minBudget, maxBudget:r.max_budget||r.maxBudget, pct:r.bid_pct||r.pct}))
+  const el = document.getElementById('rules-list')
+  const activeCount = rules.filter(r=>r.active).length
+  document.getElementById('rule-count-text').textContent = rules.length + ' rules'
+  document.getElementById('bidder-rule-count').textContent = activeCount + ' active rules'
+  el.innerHTML = rules.length === 0
+    ? '<div style="text-align:center;padding:32px;color:var(--muted2);font-size:13px">No rules yet — click "+ New Rule" to add one</div>'
+    : rules.map(r => `
+      <div class="rule-row" id="rule-row-${r.id}">
+        <div class="rule-info">
+          <div class="rule-name">${r.name}</div>
+          <div class="rule-meta">
+            ${(r.keywords||[]).map(k=>`<span class="rule-tag">${k}</span>`).join('')}
+            <span>$${r.minBudget||r.min_budget||0}–${r.maxBudget||r.max_budget||9999}</span>
+            <span>Bid at ${r.pct||r.bid_pct||65}% of max</span>
+          </div>
+        </div>
+        <div class="rule-actions">
+          <button class="btn btn-danger" style="font-size:11px;padding:4px 10px;" onclick="deleteRule(${r.id})">Delete</button>
+          <label class="toggle"><input type="checkbox" ${r.active?'checked':''} onchange="toggleRule(${r.id},this.checked)"><span class="toggle-track"></span></label>
+        </div>
+      </div>`).join('')
+}
+
+async function toggleRule(id, val) {
+  await apiPost('/rules/'+id, {}) // PATCH via fetch directly
+  fetch(API+'/rules/'+id, {method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:val})})
+  rules.find(r=>r.id===id).active = val
+  const activeCount = rules.filter(r=>r.active).length
+  document.getElementById('bidder-rule-count').textContent = activeCount + ' active rules'
+}
+
+async function deleteRule(id) {
+  await fetch(API+'/rules/'+id, {method:'DELETE'})
+  rules = rules.filter(r=>r.id!==id)
+  renderRules()
+}
+
+async function saveRule() {
+  const name = document.getElementById('new-rule-name').value.trim()
+  if(!name) return alert('Enter a rule name')
+  const newRule = {
+    name,
+    keywords: keywords.length ? keywords : ['General'],
+    minBudget: parseInt(document.getElementById('budget-min').value)||50,
+    maxBudget: parseInt(document.getElementById('budget-max').value)||500,
+    bidPct: parseInt(document.getElementById('bid-pct').value)||65
+  }
+  const saved = await apiPost('/rules', newRule)
+  if(saved?.id) {
+    rules.push({...saved, active:true, minBudget:saved.minBudget||newRule.minBudget, maxBudget:saved.maxBudget||newRule.maxBudget, pct:saved.bidPct||newRule.bidPct})
+  } else {
+    rules.push({id:Date.now(), ...newRule, active:true, pct:newRule.bidPct})
+  }
+  closeRuleModal()
+  renderRules()
+}
+
+// ——— AUTH / LOGIN ———
+let currentUser = null
+
+function connectWithFreelancer() {
+  // Freelancer OAuth 2.0 flow
+  // In a real server setup this redirects to Freelancer's OAuth page
+  // For the standalone HTML, we guide them to get a token instead
+  const clientId = localStorage.getItem('fl_client_id') || ''
+
+  if(clientId) {
+    // Full OAuth redirect
+    const redirectUri = encodeURIComponent(window.location.href.split('?')[0])
+    const scope = encodeURIComponent('basic fln:project_info fln:message_info fln:bid_info')
+    window.location.href = `https://accounts.freelancer.com/oauth/authorize?response_type=token&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`
+  } else {
+    // Guide them to get a personal access token (simpler)
+    showLoginSection('token')
+    window.open('https://www.freelancer.com/users/settings/developer', '_blank')
+    showError('A Freelancer developer page has opened. Create a Personal Access Token there, then paste it above.')
+  }
+}
+
+function showLoginSection(mode) {
+  // already showing token section by default
+}
+
+async function loginWithToken() {
+  const token = document.getElementById('token-input').value.trim()
+  if(!token) return
+
+  showLoading('Verifying your Freelancer account…')
+
+  try {
+    // Use our own backend to verify — avoids CORS issues
+    const res = await fetch('/api/auth/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    })
+    const data = await res.json()
+
+    if(data.success && data.user) {
+      saveUser(data.user)
+      enterApp(data.user)
+    } else {
+      hideLoading()
+      showError(data.error || 'Invalid token — check you copied the full token from Freelancer.')
+    }
+  } catch(err) {
+    hideLoading()
+    showError('Cannot reach the server. Make sure BidFlow is running — open http://localhost:3001 instead of the HTML file directly.')
+  }
+}
+
+function saveUser(user) {
+  try { localStorage.setItem('bidflow_user', JSON.stringify(user)) } catch(e) {}
+}
+
+function loadSavedUser() {
+  try {
+    const raw = localStorage.getItem('bidflow_user')
+    return raw ? JSON.parse(raw) : null
+  } catch(e) { return null }
+}
+
+function enterApp(user) {
+  currentUser = user
+  // Hide login screen
+  document.getElementById('login-screen').style.opacity = '0'
+  document.getElementById('login-screen').style.transition = 'opacity 0.4s'
+  setTimeout(() => { document.getElementById('login-screen').style.display = 'none' }, 400)
+
+  // Update sidebar
+  const initials = (user.displayName||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+  document.getElementById('sidebar-avatar').textContent = initials
+  document.getElementById('sidebar-avatar').style.background = `linear-gradient(135deg, var(--accent), #9b59b6)`
+  document.getElementById('sidebar-name').textContent = user.displayName
+  document.getElementById('sidebar-status').textContent = '● Connected'
+  document.getElementById('sidebar-status').style.color = 'var(--accent3)'
+  document.getElementById('profile-link').href = user.profileUrl || 'https://www.freelancer.com'
+
+  // Store token for API calls
+  window._fl_token = user.token
+
+  showToast(`Welcome back, ${user.displayName.split(' ')[0]}! 👋`)
+}
+
+function enterDemoMode() {
+  const demoUser = { token: null, displayName: 'Demo User', username: 'demo', profileUrl: 'https://www.freelancer.com' }
+  currentUser = demoUser
+  document.getElementById('login-screen').style.opacity = '0'
+  document.getElementById('login-screen').style.transition = 'opacity 0.3s'
+  setTimeout(() => { document.getElementById('login-screen').style.display = 'none' }, 300)
+  document.getElementById('sidebar-avatar').textContent = '👤'
+  document.getElementById('sidebar-name').textContent = 'Demo Mode'
+  document.getElementById('sidebar-status').textContent = '○ Not connected'
+}
+
+function logout() {
+  try { localStorage.removeItem('bidflow_user') } catch(e) {}
+  currentUser = null
+  window._fl_token = null
+  document.getElementById('user-menu').style.display = 'none'
+  // Reset login form
+  document.getElementById('token-input').value = ''
+  document.getElementById('login-error').style.display = 'none'
+  document.getElementById('login-loading').style.display = 'none'
+  document.getElementById('login-connect-section').style.display = 'block'
+  document.getElementById('login-screen').style.opacity = '1'
+  document.getElementById('login-screen').style.display = 'flex'
+}
+
+function toggleUserMenu() {
+  const m = document.getElementById('user-menu')
+  m.style.display = m.style.display === 'none' ? 'block' : 'none'
+}
+// Close user menu on outside click
+document.addEventListener('click', e => {
+  if(!e.target.closest('.sidebar-bottom')) {
+    document.getElementById('user-menu').style.display = 'none'
+  }
+})
+
+function showLoading(msg) {
+  document.getElementById('login-connect-section').style.display = 'none'
+  document.getElementById('login-loading').style.display = 'block'
+  document.getElementById('login-loading-text').textContent = msg || 'Connecting…'
+  document.getElementById('login-error').style.display = 'none'
+}
+function hideLoading() {
+  document.getElementById('login-connect-section').style.display = 'block'
+  document.getElementById('login-loading').style.display = 'none'
+}
+function showError(msg) {
+  const el = document.getElementById('login-error')
+  el.style.display = 'block'
+  el.textContent = msg
+}
+async function syncStatus() {
+  const s = await apiGet('/status')
+  if(!s) return
+  // Update dashboard stats
+  const el = document.getElementById('dash-bids-today')
+  if(el) el.textContent = s.stats?.bidsToday ?? bidsToday
+  // Update bidder badge
+  const badge = document.getElementById('badge-bidder')
+  if(badge) {
+    badge.textContent = s.active ? 'ON' : 'OFF'
+    badge.className = s.active ? 'nav-badge green' : 'nav-badge'
+  }
+}
+
+// ——— TOAST ———
+function showToast(msg, type='success') {
+  const t = document.createElement('div')
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;z-index:999;transition:opacity 0.3s;background:${type==='success'?'var(--accent3)':'var(--accent2)'};color:${type==='success'?'#000':'#fff'};box-shadow:0 4px 20px rgba(0,0,0,0.3)`
+  t.textContent = msg
+  document.body.appendChild(t)
+  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),400) }, 2500)
+}
+
+// ——— MISC ———
+function skipBid(btn) {
+  const item = btn.closest('.bid-item')
+  item.style.opacity='0.35'
+  btn.disabled=true; btn.textContent='Skipped'
+  const countEl = document.getElementById('queue-count')
+  const n = parseInt(countEl.textContent)
+  countEl.textContent = Math.max(0,n-1)+' pending'
+}
+
+// ——— INIT ———
+async function init() {
+  renderJobs()
+  loadSettings()
+
+  // Check for saved login — skip login screen if already connected
+  const saved = loadSavedUser()
+  if(saved?.token) {
+    enterApp(saved)
+  }
+  // else login screen stays visible
+
+  // Sync live status from backend every 30s
+  syncStatus()
+  setInterval(syncStatus, 30000)
+
+  // Live countdown timer
+  setInterval(()=>{
+    const el = document.getElementById('next-bid-time')
+    if(!el) return
+    let secs = parseInt(el.dataset.secs||240)
+    secs -= 5
+    if(secs <= 0) secs = 180 + Math.floor(Math.random()*120)
+    el.dataset.secs = secs
+    const m = Math.floor(secs/60), s = secs%60
+    el.textContent = `Next check in ${m}m ${s}s`
+  }, 5000)
+}
+
+init()
+</script>
+</body>
+</html>
